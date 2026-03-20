@@ -712,14 +712,19 @@ function buildBoard(w,idx){
   const n=w.syllables.length;
   const slotW=Math.floor(IMG_W/n);
   board.style.cssText=`width:${IMG_W}px;height:${IMG_H}px;`;
-  // flex-direction:row-reverse means: first child appended = rightmost visually
-  // So append slot 0 first → slot 0 appears on the RIGHT (first syllable = right = Hebrew RTL)
+
   for(let i=0;i<n;i++){
     const slot=document.createElement('div');
     slot.className='slot';
     slot.dataset.slot=i;
     slot.style.cssText=`width:${slotW}px;height:${IMG_H}px;`;
     slot.innerHTML=`<span class="slot-placeholder">${w.emoji}</span>`;
+
+    // --- אלו שתי השורות שמעירות את הסאונד במגע ובלחיצה ---
+    slot.addEventListener('touchstart', () => playSyllableAudio(idx, i), {passive: true});
+    slot.onclick = () => playSyllableAudio(idx, i);
+    // --------------------------------------------------
+
     slot.addEventListener('dragover',e=>{e.preventDefault();slot.classList.add('highlight');});
     slot.addEventListener('dragleave',()=>slot.classList.remove('highlight'));
     slot.addEventListener('drop',e=>{e.preventDefault();slot.classList.remove('highlight');handleDrop(i);});
