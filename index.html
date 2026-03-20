@@ -774,34 +774,36 @@ function buildSyllableRow(w){
 // CONFIRMED: col=2 goes to slot=2 (rightmost). Match = col===slotIndex (direct).
 // Audio: slot 2 (right)=syllable 0="כ", slot 0 (left)=syllable 2="ב"
 //        syllableIndex = n-1-slotIndex
-function handleDrop(slotIndex){
-  if(dragging===null) return;
-  const col=dragging; dragging=null;
-  const w=WORDS[currentIdx];
-  const n=w.syllables.length;
-  const slot=document.querySelector(`.slot[data-slot="${slotIndex}"]`);
-  const sylI = n-1-slotIndex;   // slot n-1 (right) → syllable 0, slot 0 (left) → syllable n-1
-  playAudioForSlot(currentIdx, sylI);
-  if(col === slotIndex){
-    placedMap[slotIndex]=col;
-    const slotW=Math.floor(IMG_W/n);
-    slot.innerHTML='';
-    const c=makeStrip(currentIdx,col,slotW,IMG_H);
-    c.style.cssText='position:absolute;top:0;left:0;';
-    slot.appendChild(c);
-    slot.style.border=`2px solid ${w.color}`;
-    slot.style.animation='none'; slot.offsetHeight;
-    slot.style.animation='slot-snap 0.35s cubic-bezier(0.34,1.56,0.64,1)';
-    document.querySelectorAll('.piece').forEach(p=>{if(parseInt(p.dataset.row)===col)p.classList.add('placed-out');});
-    if(Object.keys(placedMap).length===n) setTimeout(()=>onPuzzleComplete(w),650);
-  } else {
-    slot.style.animation='none'; slot.offsetHeight;
-    slot.style.animation='wrong-shake 0.35s ease';
-    slot.style.background='#FFF0F0';
-    setTimeout(()=>{slot.style.background='';slot.style.animation='';},400);
-  }
-}
+function handleDrop(slotIdx) {
+  if (!dragging) return;
+  const pieceIdx = parseInt(dragging.dataset.row);
 
+  if (pieceIdx === slotIdx) {
+    placedMap[slotIdx] = true;
+    const slot = document.querySelector(`.slot[data-slot="${slotIdx}"]`);
+    slot.innerHTML = '';
+    const pw = slot.offsetWidth, ph = slot.offsetHeight;
+    slot.appendChild(makeStrip(currentIdx, pieceIdx, pw, ph));
+    
+    dragging.classList.add('placed-out');
+    
+    // תיקון כאן: הוספנו פונקציה ריקה (callback) כדי שהקוד לא יחכה לסיום שלא קיים
+    playAudioForSlot(currentIdx, pieceIdx, () => {
+        console.log("סאונד הברה הושמע בהצלחה");
+    });
+
+    checkWin();
+  } else {
+    // צליל טעות או רעידה (אופציונלי)
+    const slot = document.querySelector(`.slot[data-slot="${slotIdx}"]`);
+    slot.style.animation = 'wrong-shake 0.3s';
+    setTimeout(() => slot.style.animation = '', 300);
+  }
+  
+  if (ghostEl) { ghostEl.remove(); ghostEl = null; }
+  dragging = null;
+}
+  
 // ── audio ─────────────────────────────────────
 let audioCtx = null;
 function getAudioCtx(){
