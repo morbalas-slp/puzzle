@@ -706,41 +706,65 @@ function loadWord(idx){
   buildAudioSlots(w,idx);
 }
 
-function buildBoard(w,idx){
-  const board=document.getElementById('board');
-  board.innerHTML='';
+function buildPieces(w,idx){
+  const pool=document.getElementById('piecesPool');
+  pool.innerHTML='';
   const n=w.syllables.length;
+  const order=[...Array(n).keys()].sort(()=>Math.random()-0.5);
   const slotW=Math.floor(IMG_W/n);
-  board.style.cssText=`width:${IMG_W}px;height:${IMG_H}px;`;
+  
+  order.forEach(col=>{
+    const piece=document.createElement('div');
+    piece.className='piece';
+    piece.dataset.row=col;
+    const pw=slotW-10, ph=IMG_H-10;
+    piece.style.cssText=`width:${pw}px;height:${ph}px;`;
+    piece.appendChild(makeStrip(idx,col,pw,ph));
+    piece.draggable=true;
 
-  for(let i=0;i<n;i++){
-    const slot=document.createElement('div');
-    slot.className='slot';
-    slot.dataset.slot=i;
-    slot.style.cssText=`width:${slotW}px;height:${IMG_H}px;`;
-    slot.innerHTML=`<span class="slot-placeholder">${w.emoji}</span>`;
-
-    // תיקון הסאונד למובייל - שימי לב לשם הפונקציה playSyllable
-    slot.addEventListener('touchstart', () => {
-      if (typeof playSyllable === 'function') {
-        playSyllable(idx, i); 
+    // --- הוספת השמעת סאונד בלחיצה או מגע על החלק ---
+    const playMe = () => {
+      // בודק אם הפונקציה קיימת ומשמיע את ההברה של החלק הספציפי הזה
+      if (typeof playSyllableAudio === 'function') {
+        playSyllableAudio(idx, col); 
+      } else if (typeof playSyllable === 'function') {
+        playSyllable(idx, col);
       }
-    }, {passive: true});
-    
-    slot.onclick = () => playSyllable(idx, i);
+    };
 
-    slot.addEventListener('dragover',e=>{e.preventDefault();slot.classList.add('highlight');});
-    slot.addEventListener('dragleave',()=>slot.classList.remove('highlight'));
-    slot.addEventListener('drop',e=>{e.preventDefault();slot.classList.remove('highlight');handleDrop(i);});
-    slot.addEventListener('touchend',e=>{
-      e.preventDefault();
+    piece.onclick = playMe; // למחשב
+    
+    piece.addEventListener('touchstart', e => {
+      playMe(); // משמיע סאונד מיד במגע בטלפון
+      dragging=col;
+      createGhost(piece, e.touches[0].clientX, e.touches[0].clientY);
+    }, {passive: true});
+    // ----------------------------------------------
+
+    piece.addEventListener('dragstart',()=>{
+      dragging=col;
+      playMe(); // משמיע סאונד גם בתחילת גרירה במחשב
+      setTimeout(()=>piece.style.opacity='0.35',0);
+    });
+
+    piece.addEventListener('dragend',()=>{
+      if(!piece.classList.contains('placed-out')) piece.style.opacity='1';
+    });
+    
+    piece.addEventListener('touchmove',e=>{
+      moveGhost(e.touches[0].clientX,e.touches[0].clientY);
+    },{passive:true});
+
+    piece.addEventListener('touchend',e=>{
+      removeGhost();
       const t=e.changedTouches[0];
       const el=document.elementFromPoint(t.clientX,t.clientY);
       const s=el&&el.closest('.slot');
       if(s) handleDrop(parseInt(s.dataset.slot));
-    },{passive:false});
-    board.appendChild(slot);
-  }
+    },{passive:true});
+
+    pool.appendChild(piece);
+  });
 }
 
 function buildPieces(w,idx){
