@@ -841,21 +841,27 @@ function buildAudioSlots(w,wordIdx){
 
 function playAudioForSlot(wordIdx, syllableIndex, cb) {
   const wordObj = WORDS[wordIdx];
-  if (!wordObj) return;
+  if (!wordObj) { if(cb) cb(); return; }
 
-  // 1. בדיקה ראשונה: האם יש סאונד מוטמע (Base64) בתוך המילה?
-  if (wordObj.audioData && wordObj.audioData[syllableIndex] && wordObj.audioData[syllableIndex] !== "") {
-    console.log("משמיע סאונד מוטמע עבור:", wordObj.name, syllableIndex);
+  // 1. בדיקה: האם יש סאונד מוטמע (Base64) בתוך audioData?
+  if (wordObj.audioData && wordObj.audioData[syllableIndex] && wordObj.audioData[syllableIndex].length > 100) {
+    console.log("מנגן סאונד מוטמע עבור:", wordObj.name);
     const audio = new Audio(wordObj.audioData[syllableIndex]);
+    
     audio.onended = () => { if (cb) cb(); };
+    audio.onerror = () => { 
+        console.error("שגיאה בטעינת ה-Base64 של:", wordObj.name);
+        if (cb) cb(); 
+    };
+
     audio.play().catch(err => {
-      console.error("שגיאה בנגינת Base64:", err);
+      console.error("חסימת השמעה בדפדפן:", err);
       if (cb) cb();
     });
     return;
   }
 
-  // 2. בדיקה שנייה: האם יש הקלטה חיה מהדפדפן (audioMap)?
+  // 2. גיבוי: האם יש הקלטה חיה (audioMap)?
   const key = `${wordIdx}_${syllableIndex}`;
   const decoded = audioMap[key];
   if (decoded) {
@@ -868,7 +874,8 @@ function playAudioForSlot(wordIdx, syllableIndex, cb) {
     return;
   }
 
-  // אם אין כלום, פשוט ממשיכים
+  // אם לא נמצא סאונד בכלל
+  console.warn("לא נמצא סאונד עבור:", wordObj.name, "הברה:", syllableIndex);
   if (cb) cb();
 }
   
