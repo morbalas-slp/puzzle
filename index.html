@@ -738,15 +738,22 @@ function handleDrop(slotIndex){
 }
 
 // ── audio ──
+let audioCtx = null;
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// פונקציה אחת ויחידה להשמעת סאונד מ-GitHub
 function playAudioForSlot(wordIdx, syllableIndex, cb) {
   const wordObj = WORDS[wordIdx];
-  if (!wordObj) return;
+  if (!wordObj) { if(cb) cb(); return; }
 
-  // הכתובת הישירה והנכונה שלך
   const githubBaseUrl = "https://morbalas-slp.github.io/puzzle/sounds/";
   const audioUrl = githubBaseUrl + wordObj.id + "_" + syllableIndex + ".mp4";
 
-  console.log("מנסה להשמיע:", audioUrl);
+  console.log("משמיע הברה:", audioUrl);
 
   const audio = new Audio();
   audio.src = audioUrl;
@@ -759,19 +766,19 @@ function playAudioForSlot(wordIdx, syllableIndex, cb) {
     playPromise.then(() => {
       audio.onended = () => { if (cb) cb(); };
     }).catch(error => {
-      console.error("חסום בטלפון:", error);
-      if (cb) cb();
+      console.error("חסימה בדפדפן:", error);
+      if (cb) cb(); // ממשיך הלאה גם אם חסום כדי לא לתקוע את המשחק
     });
   }
 
   audio.onerror = () => {
-    console.warn("קובץ לא נמצא ב-GitHub:", audioUrl);
-    if (cb) cb();
+    console.warn("קובץ חסר ב-GitHub:", audioUrl);
+    if (cb) cb(); 
   };
 }
 
-// פונקציה ריקה כדי שלא יהיו שגיאות במקומות אחרים בקוד
-function buildAudioSlots() {
+// ביטלנו את האפשרות להעלאה ידנית כדי למנוע כפילויות ובלבול
+function buildAudioSlots(w, wordIdx) {
   const container = document.getElementById('audioSlots');
   if (container) container.innerHTML = ''; 
 }
