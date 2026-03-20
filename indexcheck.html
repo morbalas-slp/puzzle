@@ -803,12 +803,6 @@ function handleDrop(slotIndex){
 }
 
 // ── audio ─────────────────────────────────────
-let audioCtx = null;
-function getAudioCtx(){
-  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if(audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
 
 function buildAudioSlots(w,wordIdx){
   const container=document.getElementById('audioSlots');
@@ -841,42 +835,32 @@ function buildAudioSlots(w,wordIdx){
 
 function playAudioForSlot(wordIdx, syllableIndex, cb) {
   const wordObj = WORDS[wordIdx];
-  if (!wordObj) { if(cb) cb(); return; }
+  if (!wordObj || !wordObj.audioData || !wordObj.audioData[syllableIndex]) {
+    console.warn("לא נמצא מידע קולי עבור:", wordObj ? wordObj.name : "unknown");
+    if (cb) cb();
+    return;
+  }
 
-  // 1. בדיקה: האם יש סאונד מוטמע (Base64) בתוך audioData?
-  if (wordObj.audioData && wordObj.audioData[syllableIndex] && wordObj.audioData[syllableIndex].length > 100) {
-    console.log("מנגן סאונד מוטמע עבור:", wordObj.name);
-    const audio = new Audio(wordObj.audioData[syllableIndex]);
+  const data = wordObj.audioData[syllableIndex];
+
+  // בדיקה שהטקסט אכן מכיל נתונים (אורך מינימלי של Base64)
+  if (data.length > 100) {
+    const audio = new Audio(data);
     
     audio.onended = () => { if (cb) cb(); };
-    audio.onerror = () => { 
-        console.error("שגיאה בטעינת ה-Base64 של:", wordObj.name);
-        if (cb) cb(); 
+    
+    audio.onerror = (e) => {
+      console.error("שגיאה בנגינת הטקסט המוטמע:", e);
+      if (cb) cb();
     };
 
     audio.play().catch(err => {
-      console.error("חסימת השמעה בדפדפן:", err);
+      console.warn("השמעה נחסמה על ידי הדפדפן - נדרשת אינטראקציה", err);
       if (cb) cb();
     });
-    return;
+  } else {
+    if (cb) cb();
   }
-
-  // 2. גיבוי: האם יש הקלטה חיה (audioMap)?
-  const key = `${wordIdx}_${syllableIndex}`;
-  const decoded = audioMap[key];
-  if (decoded) {
-    const ctx = getAudioCtx();
-    const src = ctx.createBufferSource();
-    src.buffer = decoded;
-    src.connect(ctx.destination);
-    src.onended = () => { if (cb) cb(); };
-    src.start(0);
-    return;
-  }
-
-  // אם לא נמצא סאונד בכלל
-  console.warn("לא נמצא סאונד עבור:", wordObj.name, "הברה:", syllableIndex);
-  if (cb) cb();
 }
   
 // ── ghost ─────────────────────────────────────
