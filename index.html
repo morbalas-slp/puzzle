@@ -720,10 +720,14 @@ function buildBoard(w,idx){
     slot.style.cssText=`width:${slotW}px;height:${IMG_H}px;`;
     slot.innerHTML=`<span class="slot-placeholder">${w.emoji}</span>`;
 
-    // --- אלו שתי השורות שמעירות את הסאונד במגע ובלחיצה ---
-    slot.addEventListener('touchstart', () => playSyllableAudio(idx, i), {passive: true});
-    slot.onclick = () => playSyllableAudio(idx, i);
-    // --------------------------------------------------
+    // תיקון הסאונד למובייל - שימי לב לשם הפונקציה playSyllable
+    slot.addEventListener('touchstart', () => {
+      if (typeof playSyllable === 'function') {
+        playSyllable(idx, i); 
+      }
+    }, {passive: true});
+    
+    slot.onclick = () => playSyllable(idx, i);
 
     slot.addEventListener('dragover',e=>{e.preventDefault();slot.classList.add('highlight');});
     slot.addEventListener('dragleave',()=>slot.classList.remove('highlight'));
