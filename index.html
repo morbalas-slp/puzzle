@@ -774,6 +774,7 @@ function buildSyllableRow(w){
 // CONFIRMED: col=2 goes to slot=2 (rightmost). Match = col===slotIndex (direct).
 // Audio: slot 2 (right)=syllable 0="כ", slot 0 (left)=syllable 2="ב"
 //        syllableIndex = n-1-slotIndex
+  
 function handleDrop(slotIdx) {
   if (!dragging) return;
   const pieceIdx = parseInt(dragging.dataset.row);
