@@ -843,20 +843,19 @@ function playAudioForSlot(wordIdx, syllableIndex, cb) {
   const wordObj = WORDS[wordIdx];
   if (!wordObj) return;
 
-  // 1. בדיקה אם יש סאונד מוטמע (Base64) בתוך הקוד
-  if (wordObj.audioData && wordObj.audioData[syllableIndex]) {
+  // 1. בדיקה ראשונה: האם יש סאונד מוטמע (Base64) בתוך המילה?
+  if (wordObj.audioData && wordObj.audioData[syllableIndex] && wordObj.audioData[syllableIndex] !== "") {
+    console.log("משמיע סאונד מוטמע עבור:", wordObj.name, syllableIndex);
     const audio = new Audio(wordObj.audioData[syllableIndex]);
-    
     audio.onended = () => { if (cb) cb(); };
-    
     audio.play().catch(err => {
-      console.error("שגיאה בנגינת סאונד מוטמע:", err);
+      console.error("שגיאה בנגינת Base64:", err);
       if (cb) cb();
     });
     return;
   }
 
-  // 2. בדיקה אם יש הקלטה ידנית שבוצעה בממשק (audioMap)
+  // 2. בדיקה שנייה: האם יש הקלטה חיה מהדפדפן (audioMap)?
   const key = `${wordIdx}_${syllableIndex}`;
   const decoded = audioMap[key];
   if (decoded) {
@@ -869,11 +868,10 @@ function playAudioForSlot(wordIdx, syllableIndex, cb) {
     return;
   }
 
-  // אם הגענו לכאן ואין סאונד - פשוט נמשיך הלאה (בלי קול מחשב)
-  console.warn("לא נמצא סאונד עבור:", wordObj.name, syllableIndex);
+  // אם אין כלום, פשוט ממשיכים
   if (cb) cb();
 }
-
+  
 // ── ghost ─────────────────────────────────────
 function createGhost(el,x,y){
   if(ghostEl)ghostEl.remove();
