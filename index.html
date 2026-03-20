@@ -737,79 +737,45 @@ function handleDrop(slotIndex){
   }
 }
 
-// ── audio ─────────────────────────────────────
-let audioCtx = null;
-function getAudioCtx(){
-  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if(audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
-
-function buildAudioSlots(w,wordIdx){
-  const container=document.getElementById('audioSlots');
-  container.innerHTML='';
-  w.syllables.forEach((syl,si)=>{
-    const wrap=document.createElement('div');wrap.className='audio-slot';
-    const lbl=document.createElement('label');lbl.textContent=`"${syl}"`;
-    const input=document.createElement('input');input.type='file';input.accept='audio/*';input.style.display='none';
-    const btn=document.createElement('button');
-    const key=`${wordIdx}_${si}`;
-    btn.className='upload-btn'+(audioMap[key]?' done':'');
-    btn.textContent=audioMap[key]?'✅':'🎵';
-    btn.onclick=()=>input.click();
-    input.onchange=()=>{
-      const f=input.files[0];if(!f)return;
-      const reader=new FileReader();
-      reader.onload=e=>{
-        const ctx=getAudioCtx();
-        // Decode once and store the AudioBuffer — avoids detached ArrayBuffer issues
-        ctx.decodeAudioData(e.target.result, decoded=>{
-          audioMap[key]=decoded; // store as AudioBuffer
-          btn.className='upload-btn done';btn.textContent='✅';
-        }, err=>{ alert('שגיאה בקובץ השמע — נסי פורמט אחר (mp3/wav)'); console.error(err); });
-      };
-      reader.readAsArrayBuffer(f);
-    };
-    wrap.append(lbl,input,btn);container.appendChild(wrap);
-  });
-}
-
+// ── audio ──
 function playAudioForSlot(wordIdx, syllableIndex, cb) {
   const wordObj = WORDS[wordIdx];
   if (!wordObj) return;
 
+  // הכתובת הישירה והנכונה שלך
   const githubBaseUrl = "https://morbalas-slp.github.io/puzzle/sounds/";
   const audioUrl = githubBaseUrl + wordObj.id + "_" + syllableIndex + ".mp4";
 
-  console.log("מנסה להזרים סאונד:", audioUrl);
+  console.log("מנסה להשמיע:", audioUrl);
 
   const audio = new Audio();
   audio.src = audioUrl;
-  
-  // הגדרות קריטיות לניידים
   audio.preload = "auto";
   audio.crossOrigin = "anonymous";
 
-  // פתרון לאייפון: מבקש מהדפדפן להשמיע מיד כשזה מוכן
   const playPromise = audio.play();
 
   if (playPromise !== undefined) {
     playPromise.then(() => {
-      // ההשמעה התחילה בהצלחה
       audio.onended = () => { if (cb) cb(); };
     }).catch(error => {
-      console.error("חסימת השמעה בנייד:", error);
-      // אם יש חסימה, ננסה "לרכוב" על האירוע של הלחיצה
+      console.error("חסום בטלפון:", error);
       if (cb) cb();
     });
   }
 
   audio.onerror = () => {
-    console.warn("קובץ לא נמצא:", audioUrl);
+    console.warn("קובץ לא נמצא ב-GitHub:", audioUrl);
     if (cb) cb();
   };
 }
 
+// פונקציה ריקה כדי שלא יהיו שגיאות במקומות אחרים בקוד
+function buildAudioSlots() {
+  const container = document.getElementById('audioSlots');
+  if (container) container.innerHTML = ''; 
+}
+  
 // ── ghost ─────────────────────────────────────
 function createGhost(el,x,y){
   if(ghostEl)ghostEl.remove();
