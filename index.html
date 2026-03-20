@@ -957,35 +957,44 @@ function spawnConfetti(){
 
 function enableAudioAndStart() {
   try {
-    // שחרור חסימת שמע בטלפון (השם המתוקן)
+    // 1. יצירת צליל קצר וריק - זה ה"מפתח" הכי חזק למובייל
+    if (typeof getAudioCtx === 'function') {
+      const ctx = getAudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+      
+      // יוצר צליל שקט מאוד לשבריר שנייה
+      const osc = ctx.createOscillator();
+      const silentGain = ctx.createGain();
+      silentGain.gain.value = 0.001; // כמעט אפס
+      osc.connect(silentGain);
+      silentGain.connect(ctx.destination);
+      osc.start(0);
+      osc.stop(0.1); // מפסיק מיד
+    }
+
+    // 2. שחרור הקראה ממוחשבת (הקוד המקור שלך)
     if ('speechSynthesis' in window) {
       const msg = new SpeechSynthesisUtterance('');
       speechSynthesis.speak(msg);
     }
-    
-    // מעיר את מערכת השמע עבור הקלטות
-    if (typeof getAudioCtx === 'function') {
-      getAudioCtx().resume();
-    }
 
-    // העלמת מסך הפתיחה
+    // 3. העלמת מסך הפתיחה
     const enabler = document.getElementById('audioEnabler');
     if (enabler) {
       enabler.style.display = 'none';
     }
     
-    // הפעלת המשחק
+    // 4. הפעלת המשחק
     init(); 
   } catch (e) {
     console.error("Error starting game:", e);
-    // ליתר ביטחון, אם משהו נכשל - בכל זאת ננסה להפעיל את המשחק
-    document.getElementById('audioEnabler').style.display = 'none';
+    const enabler = document.getElementById('audioEnabler');
+    if (enabler) enabler.style.display = 'none';
     init();
   }
 }
-
-// ביטלנו את הטעינה האוטומטית כדי שהטלפון לא יחסום את הסאונד
-// window.onload = initLevel;
 </script>
 
 </body>
