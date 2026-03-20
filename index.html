@@ -774,48 +774,38 @@ function buildAudioSlots(w,wordIdx){
   });
 }
 
-function playAudioForSlot(wordIdx, syllableIndex, cb){
+function playAudioForSlot(wordIdx, syllableIndex, cb) {
   const wordObj = WORDS[wordIdx];
-  if(!wordObj) return;
+  if (!wordObj) return;
 
-  const key = `${wordIdx}_${syllableIndex}`;
-  const decoded = audioMap[key];
+  const wordId = wordObj.id;
+  // הכתובת הישירה לקבצים שלך ב-GitHub
+  const githubBaseUrl = "https://raw.githubusercontent.com/morbalas-slp/puzzle/main/sounds/";
+  const audioUrl = githubBaseUrl + wordId + "_" + syllableIndex + ".mp4";
 
-  // 1. עדיפות להקלטה ידנית (אם הקלטת בממשק)
-  if(decoded){
-    const ctx = getAudioCtx();
-    const src = ctx.createBufferSource();
-    src.buffer = decoded;
-    src.connect(ctx.destination);
-    src.onended = () => { if (cb) cb(); };
-    src.start(0);
-    return;
-  }
+  console.log("מנסה להשמיע מכתובת:", audioUrl);
 
-  // 2. השמעת קובץ MP4 מהתיקייה
-  // שימי לב: אנחנו משתמשים ב-id (האנגלי) ובנתיב יחסי ./ שמסייע לטלפונים
-  const wordId = wordObj.id; 
-const audioPath = 'sounds/' + wordId + '_' + syllableIndex + '.mp4';
-  const audio = new Audio(audioPath);
-audio.load(); // פקודה מפורשת לטלפון לטעון את הקובץ מיד
-  audio.onended = () => { if (cb) cb(); };
+  const audio = new Audio(audioUrl);
+  
+  // הגדרה שחשובה מאוד לטלפונים כדי שיטענו את הקובץ מראש
+  audio.preload = "auto";
 
-  // מנגנון הגיבוי - מופעל רק אם הקובץ באמת לא נמצא
-  audio.onerror = () => {
-    console.error("קובץ לא נמצא:", audioPath);
-    if('speechSynthesis' in window){
-      const u = new SpeechSynthesisUtterance(wordObj.syllables[syllableIndex]);
-      u.lang = 'he-IL';
-      u.onend = () => { if (cb) cb(); };
-      speechSynthesis.speak(u);
-    } else { if(cb) cb(); }
+  audio.oncanplaythrough = () => {
+    audio.play().catch(err => {
+      console.error("שגיאת ניגון בטלפון:", err);
+      if (cb) cb();
+    });
   };
 
-  // הפעלה עם "הבטחה" (Promise) למניעת חסימה בטלפון
-  audio.play().catch(err => {
-    console.warn("נגינה נחסמה על ידי הדפדפן, מנסה גיבוי");
-    audio.onerror();
-  });
+  audio.onended = () => {
+    if (cb) cb();
+  };
+
+  audio.onerror = () => {
+    console.warn("הקובץ לא נמצא בשרת GitHub:", audioUrl);
+    // אם אין קובץ, פשוט ממשיכים בלי להיתקע ובלי קול מחשב
+    if (cb) cb();
+  };
 }
 
 // ── ghost ─────────────────────────────────────
