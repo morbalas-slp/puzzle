@@ -778,13 +778,10 @@ function playAudioForSlot(wordIdx, syllableIndex, cb) {
   const wordObj = WORDS[wordIdx];
   if (!wordObj) return;
 
-  const wordId = wordObj.id;
-  
-  // שינינו את הכתובת לכתובת של האתר שלך - זה הופך את זה לסטרימינג תקין
   const githubBaseUrl = "https://morbalas-slp.github.io/puzzle/sounds/";
-  const audioUrl = githubBaseUrl + wordId + "_" + syllableIndex + ".mp4";
+  const audioUrl = githubBaseUrl + wordObj.id + "_" + syllableIndex + ".mp4";
 
-  console.log("מנסה להזרים סאונד מ-Pages:", audioUrl);
+  console.log("מנסה להזרים סאונד:", audioUrl);
 
   const audio = new Audio();
   audio.src = audioUrl;
@@ -793,17 +790,22 @@ function playAudioForSlot(wordIdx, syllableIndex, cb) {
   audio.preload = "auto";
   audio.crossOrigin = "anonymous";
 
-  audio.oncanplaythrough = () => {
-    audio.play().catch(err => {
-      console.error("שגיאת הפעלה בנייד:", err);
+  // פתרון לאייפון: מבקש מהדפדפן להשמיע מיד כשזה מוכן
+  const playPromise = audio.play();
+
+  if (playPromise !== undefined) {
+    playPromise.then(() => {
+      // ההשמעה התחילה בהצלחה
+      audio.onended = () => { if (cb) cb(); };
+    }).catch(error => {
+      console.error("חסימת השמעה בנייד:", error);
+      // אם יש חסימה, ננסה "לרכוב" על האירוע של הלחיצה
       if (cb) cb();
     });
-  };
+  }
 
-  audio.onended = () => { if (cb) cb(); };
-
-  audio.onerror = (e) => {
-    console.warn("קובץ לא נמצא או שגיאת טעינה:", audioUrl);
+  audio.onerror = () => {
+    console.warn("קובץ לא נמצא:", audioUrl);
     if (cb) cb();
   };
 }
