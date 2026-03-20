@@ -737,7 +737,7 @@ function handleDrop(slotIndex){
   }
 }
 
-// ── audio ──
+// ── audio ─────────────────────────────────────
 let audioCtx = null;
 function getAudioCtx(){
   if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -745,44 +745,79 @@ function getAudioCtx(){
   return audioCtx;
 }
 
-// פונקציה אחת ויחידה להשמעת סאונד מ-GitHub
-function playAudioForSlot(wordIdx, syllableIndex, cb) {
+function buildAudioSlots(w,wordIdx){
+  const container=document.getElementById('audioSlots');
+  container.innerHTML='';
+  w.syllables.forEach((syl,si)=>{
+    const wrap=document.createElement('div');wrap.className='audio-slot';
+    const lbl=document.createElement('label');lbl.textContent=`"${syl}"`;
+    const input=document.createElement('input');input.type='file';input.accept='audio/*';input.style.display='none';
+    const btn=document.createElement('button');
+    const key=`${wordIdx}_${si}`;
+    btn.className='upload-btn'+(audioMap[key]?' done':'');
+    btn.textContent=audioMap[key]?'✅':'🎵';
+    btn.onclick=()=>input.click();
+    input.onchange=()=>{
+      const f=input.files[0];if(!f)return;
+      const reader=new FileReader();
+      reader.onload=e=>{
+        const ctx=getAudioCtx();
+        // Decode once and store the AudioBuffer — avoids detached ArrayBuffer issues
+        ctx.decodeAudioData(e.target.result, decoded=>{
+          audioMap[key]=decoded; // store as AudioBuffer
+          btn.className='upload-btn done';btn.textContent='✅';
+        }, err=>{ alert('שגיאה בקובץ השמע — נסי פורמט אחר (mp3/wav)'); console.error(err); });
+      };
+      reader.readAsArrayBuffer(f);
+    };
+    wrap.append(lbl,input,btn);container.appendChild(wrap);
+  });
+}
+
+function playAudioForSlot(wordIdx, syllableIndex, cb){
   const wordObj = WORDS[wordIdx];
-  if (!wordObj) { if(cb) cb(); return; }
+  if(!wordObj) return;
 
-  const githubBaseUrl = "https://morbalas-slp.github.io/puzzle/sounds/";
-  const audioUrl = githubBaseUrl + wordObj.id + "_" + syllableIndex + ".mp4";
+  const key = `${wordIdx}_${syllableIndex}`;
+  const decoded = audioMap[key];
 
-  console.log("משמיע הברה:", audioUrl);
-
-  const audio = new Audio();
-  audio.src = audioUrl;
-  audio.preload = "auto";
-  audio.crossOrigin = "anonymous";
-
-  const playPromise = audio.play();
-
-  if (playPromise !== undefined) {
-    playPromise.then(() => {
-      audio.onended = () => { if (cb) cb(); };
-    }).catch(error => {
-      console.error("חסימה בדפדפן:", error);
-      if (cb) cb(); // ממשיך הלאה גם אם חסום כדי לא לתקוע את המשחק
-    });
+  // 1. עדיפות להקלטה ידנית (אם הקלטת בממשק)
+  if(decoded){
+    const ctx = getAudioCtx();
+    const src = ctx.createBufferSource();
+    src.buffer = decoded;
+    src.connect(ctx.destination);
+    src.onended = () => { if (cb) cb(); };
+    src.start(0);
+    return;
   }
 
+  // 2. השמעת קובץ MP3 מהתיקייה
+  // שימי לב: אנחנו משתמשים ב-id (האנגלי) ובנתיב יחסי ./ שמסייע לטלפונים
+  const wordId = wordObj.id; 
+const audioPath = 'sounds/' + wordId + '_' + syllableIndex + '.mp3';
+  const audio = new Audio(audioPath);
+audio.load(); // פקודה מפורשת לטלפון לטעון את הקובץ מיד
+  audio.onended = () => { if (cb) cb(); };
+
+  // מנגנון הגיבוי - מופעל רק אם הקובץ באמת לא נמצא
   audio.onerror = () => {
-    console.warn("קובץ חסר ב-GitHub:", audioUrl);
-    if (cb) cb(); 
+    console.error("קובץ לא נמצא:", audioPath);
+    if('speechSynthesis' in window){
+      const u = new SpeechSynthesisUtterance(wordObj.syllables[syllableIndex]);
+      u.lang = 'he-IL';
+      u.onend = () => { if (cb) cb(); };
+      speechSynthesis.speak(u);
+    } else { if(cb) cb(); }
   };
+
+  // הפעלה עם "הבטחה" (Promise) למניעת חסימה בטלפון
+  audio.play().catch(err => {
+    console.warn("נגינה נחסמה על ידי הדפדפן, מנסה גיבוי");
+    audio.onerror();
+  });
 }
 
-// ביטלנו את האפשרות להעלאה ידנית כדי למנוע כפילויות ובלבול
-function buildAudioSlots(w, wordIdx) {
-  const container = document.getElementById('audioSlots');
-  if (container) container.innerHTML = ''; 
-}
-  
 // ── ghost ─────────────────────────────────────
 function createGhost(el,x,y){
   if(ghostEl)ghostEl.remove();
