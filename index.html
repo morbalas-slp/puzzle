@@ -779,31 +779,31 @@ function playAudioForSlot(wordIdx, syllableIndex, cb) {
   if (!wordObj) return;
 
   const wordId = wordObj.id;
-  // הכתובת הישירה לקבצים שלך ב-GitHub
-  const githubBaseUrl = "https://raw.githubusercontent.com/morbalas-slp/puzzle/main/sounds/";
+  
+  // שינינו את הכתובת לכתובת של האתר שלך - זה הופך את זה לסטרימינג תקין
+  const githubBaseUrl = "https://morbalas-slp.github.io/puzzle/sounds/";
   const audioUrl = githubBaseUrl + wordId + "_" + syllableIndex + ".mp4";
 
-  console.log("מנסה להשמיע מכתובת:", audioUrl);
+  console.log("מנסה להזרים סאונד מ-Pages:", audioUrl);
 
-  const audio = new Audio(audioUrl);
+  const audio = new Audio();
+  audio.src = audioUrl;
   
-  // הגדרה שחשובה מאוד לטלפונים כדי שיטענו את הקובץ מראש
+  // הגדרות קריטיות לניידים
   audio.preload = "auto";
+  audio.crossOrigin = "anonymous";
 
   audio.oncanplaythrough = () => {
     audio.play().catch(err => {
-      console.error("שגיאת ניגון בטלפון:", err);
+      console.error("שגיאת הפעלה בנייד:", err);
       if (cb) cb();
     });
   };
 
-  audio.onended = () => {
-    if (cb) cb();
-  };
+  audio.onended = () => { if (cb) cb(); };
 
-  audio.onerror = () => {
-    console.warn("הקובץ לא נמצא בשרת GitHub:", audioUrl);
-    // אם אין קובץ, פשוט ממשיכים בלי להיתקע ובלי קול מחשב
+  audio.onerror = (e) => {
+    console.warn("קובץ לא נמצא או שגיאת טעינה:", audioUrl);
     if (cb) cb();
   };
 }
