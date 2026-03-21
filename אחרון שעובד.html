@@ -740,6 +740,7 @@ function buildPieces(w,idx){
   const n=w.syllables.length;
   const order=[...Array(n).keys()].sort(()=>Math.random()-0.5);
   const slotW=Math.floor(IMG_W/n);
+  
   order.forEach(col=>{
     const piece=document.createElement('div');
     piece.className='piece';
@@ -748,9 +749,30 @@ function buildPieces(w,idx){
     piece.style.cssText=`width:${pw}px;height:${ph}px;`;
     piece.appendChild(makeStrip(idx,col,pw,ph));
     piece.draggable=true;
-    piece.addEventListener('dragstart',()=>{dragging=col;setTimeout(()=>piece.style.opacity='0.35',0);});
+
+    const playMe = () => playSyllable(idx, col);
+
+    // למחשב
+    piece.onclick = playMe;
+
+    // למובייל - משמיע מיד במגע
+    piece.addEventListener('touchstart', e => {
+      playMe();
+      // עיכוב קטנטן לפני תחילת הגרירה כדי שהסאונד יתחיל לנגן
+      setTimeout(() => {
+        dragging=col;
+        createGhost(piece, e.touches[0].clientX, e.touches[0].clientY);
+      }, 10);
+    }, {passive: true});
+
+    piece.addEventListener('dragstart',()=>{
+      dragging=col;
+      playMe();
+      setTimeout(()=>piece.style.opacity='0.35',0);
+    });
+
+    // שאר האירועים נשארים אותו דבר...
     piece.addEventListener('dragend',()=>{if(!piece.classList.contains('placed-out'))piece.style.opacity='1';});
-    piece.addEventListener('touchstart',e=>{dragging=col;createGhost(piece,e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
     piece.addEventListener('touchmove',e=>{moveGhost(e.touches[0].clientX,e.touches[0].clientY);},{passive:true});
     piece.addEventListener('touchend',e=>{
       removeGhost();
@@ -759,6 +781,7 @@ function buildPieces(w,idx){
       const s=el&&el.closest('.slot');
       if(s) handleDrop(parseInt(s.dataset.slot));
     },{passive:true});
+
     pool.appendChild(piece);
   });
 }
@@ -947,36 +970,17 @@ function spawnConfetti(){
 }
 
 function enableAudioAndStart() {
-  try {
-    // שחרור חסימת שמע בטלפון (השם המתוקן)
-    if ('speechSynthesis' in window) {
-      const msg = new SpeechSynthesisUtterance('');
-      speechSynthesis.speak(msg);
-    }
-    
-    // מעיר את מערכת השמע עבור הקלטות
-    if (typeof getAudioCtx === 'function') {
-      getAudioCtx().resume();
-    }
+  // יצירת צליל קצר ושקט מאוד כדי "להעיר" את השמע במובייל
+  const silence = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==');
+  silence.play().catch(() => {});
 
-    // העלמת מסך הפתיחה
-    const enabler = document.getElementById('audioEnabler');
-    if (enabler) {
-      enabler.style.display = 'none';
-    }
-    
-    // הפעלת המשחק
-    init(); 
-  } catch (e) {
-    console.error("Error starting game:", e);
-    // ליתר ביטחון, אם משהו נכשל - בכל זאת ננסה להפעיל את המשחק
-    document.getElementById('audioEnabler').style.display = 'none';
-    init();
+  if (typeof getAudioCtx === 'function') {
+    getAudioCtx().resume();
   }
-}
 
-// ביטלנו את הטעינה האוטומטית כדי שהטלפון לא יחסום את הסאונד
-// window.onload = initLevel;
+  document.getElementById('audioEnabler').style.display = 'none';
+  if (!currentIdx) initGame();
+}
 </script>
 
 </body>
