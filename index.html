@@ -1,185 +1,229 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>פאזל חיות לילדים - כלב איורי</title>
-    <style>
-        :root {
-            --bg-color: #e0f2f1;
-            --slot-border: rgba(0,0,0,0.3);
-            --highlight-final: #fff59d;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>מצא את החיה - משחק לימודי</title>
+<style>
+/* העיצוב המעודכן מהקוד הקודם */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Varela+Round&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-        * { box-sizing: border-box; touch-action: none; }
+body {
+  font-family: 'Varela Round', sans-serif;
+  background: #e8f4f8;
+  min-height: 100vh;
+  direction: rtl;
+  overflow-x: hidden;
+}
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0; padding: 0;
-            background-color: var(--bg-color);
-            display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 20%, #FFD93D22 0%, transparent 40%),
+    radial-gradient(circle at 80% 80%, #4ECDC422 0%, transparent 40%);
+  pointer-events: none;
+}
 
-        /* מסך פתיחה */
-        #start-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 1000;
-            visibility: visible;
-            opacity: 1;
-            transition: opacity 0.5s;
-        }
+header { text-align: center; padding: 20px 16px 6px; }
+h1 { font-family:'Fredoka One',cursive; font-size: clamp(1.8rem,5vw,2.8rem); color:#3a3a3a; letter-spacing:2px; }
+h1 span { color:#FF6B6B; }
+.tagline { font-size:0.95rem; color:#999; margin-top:4px; }
 
-        #start-button {
-            padding: 25px 50px; font-size: 32px; font-weight: bold;
-            background: #ff7043; color: white; border: none; border-radius: 25px;
-            cursor: pointer; box-shadow: 0 10px 25px rgba(255,112,67,0.5);
-        }
+.word-bar { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; padding:14px; }
+.word-btn {
+  background:white; border:3px solid #EEE; border-radius:50px;
+  padding:8px 18px; font-family:'Fredoka One',cursive; font-size:1.05rem;
+  cursor:pointer; transition:all 0.2s; box-shadow:0 4px 0 #DDD;
+  color:#555; display:flex; align-items:center; gap:8px;
+}
+.word-btn.active { border-color:#FF6B6B; box-shadow:0 4px 0 #FF4444; color:#FF6B6B; background:#FFF5F5; }
 
-        #game-container {
-            display: flex;
-            flex-direction: column;
-            width: 100%; max-width: 800px;
-            height: 90%; gap: 30px; padding: 20px;
-            align-items: center;
-        }
+.game-wrap {
+  display:flex; gap:24px; justify-content:center; align-items:flex-start;
+  flex-direction:row; flex-wrap:wrap; padding:8px 16px 32px; max-width:1000px; margin:0 auto;
+}
 
-        #puzzle-board {
-            flex: 2; display: flex;
-            flex-direction: row;
-            justify-content: center; align-items: center;
-            background: rgba(255,255,255,0.9); border-radius: 30px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-            position: relative;
-            padding: 20px;
-        }
+.board-card, .pieces-card {
+  background:white; border-radius:24px; padding:18px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.1); flex:0 0 auto;
+}
 
-        .slot {
-            width: 150px;
-            height: 400px;
-            border: 2px dashed var(--slot-border);
-            position: relative;
-            display: flex; justify-content: center;
-        }
+.board { border-radius:14px; overflow:visible; border:3px solid #EEE; background:#f5f5f5; position:relative; display:flex; flex-direction:row-reverse; }
+.slot { position:relative; border-right:2px dashed #DDD; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.slot:last-child { border-right:none; }
+.slot.highlight { background:#E0FAF7 !important; outline:3px solid #4ECDC4; outline-offset:-3px; }
 
-        .slot-label {
-            position: absolute; bottom: -45px;
-            font-size: 36px; font-weight: bold; color: #333;
-        }
+.pieces-pool { display:flex; flex-direction:row; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; max-width:400px; }
+.piece {
+  border-radius:12px; cursor:grab; overflow:hidden; position:relative;
+  box-shadow:0 5px 0 rgba(0,0,0,0.13), 0 8px 18px rgba(0,0,0,0.09);
+  transition:transform 0.18s; border:3px solid rgba(255,255,255,0.9);
+}
 
-        #pieces-area {
-            flex: 1; width: 100%; position: relative;
-            background: rgba(255,255,255,0.5);
-            border-radius: 20px;
-            min-height: 150px;
-        }
+.win-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55);
+  z-index:9990; align-items:center; justify-content:center;
+}
+.win-overlay.show { display:flex; }
+.win-card {
+  background:white; border-radius:28px; padding:36px 44px; text-align:center;
+  animation:pop-win 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
 
-        .puzzle-part {
-            width: 150px; height: 400px;
-            cursor: grab;
-            position: absolute;
-            z-index: 10;
-            background-repeat: no-repeat;
-            background-size: 450px 400px;
-            border-radius: 10px;
-            box-shadow: 0 8px 15px rgba(0,0,0,0.2);
-        }
-    </style>
+@keyframes pop-win { from{transform:scale(0.3);opacity:0} to{transform:scale(1);opacity:1} }
+.confetti-bit { position:fixed; border-radius:3px; animation:fall linear forwards; pointer-events:none; z-index:10000; }
+@keyframes fall { from{transform:translateY(-30px) rotate(0deg);opacity:1} to{transform:translateY(110vh) rotate(600deg);opacity:0} }
+</style>
 </head>
+
 <body>
+  <div id="audioEnabler" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(232,244,248,0.95); z-index:10000; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;">
+      <h2 style="margin-bottom:20px;">מוכנים לשחק?</h2>
+      <button id="startMainBtn" style="padding:20px 40px; font-size:24px; border-radius:50px; border:none; background:#FFD93D; cursor:pointer; font-weight:bold; box-shadow:0 5px 15px rgba(0,0,0,0.1);">לחצו כאן להתחלה 🔊</button>
+  </div>
 
-    <div id="start-overlay">
-        <button id="start-button">התחל משחק 🐾</button>
+  <header>
+    <h1>🐾 מצא את <span>החיה</span></h1>
+    <p class="tagline">הרכב את המילה מהחלקים!</p>
+  </header>
+
+  <div class="word-bar" id="wordBar"></div>
+
+  <div class="game-wrap">
+    <div class="board-card">
+      <div class="card-label">📌 הרכב כאן</div>
+      <div class="board" id="board"></div>
     </div>
 
-    <div id="game-container">
-        <div id="puzzle-board">
-            <div id="slot-0" class="slot" data-order="0"><div class="slot-label">כ</div></div>
-            <div id="slot-1" class="slot" data-order="1"><div class="slot-label">ל</div></div>
-            <div id="slot-2" class="slot" data-order="2"><div class="slot-label">ב</div></div>
-        </div>
-        <div id="pieces-area"></div>
+    <div class="pieces-card">
+      <div class="card-label">✋ גרור חלק למקומו!</div>
+      <div class="pieces-pool" id="piecesPool"></div>
     </div>
+  </div>
 
-    <script>
-        // הדביקי כאן את ה-base64 הארוך של התמונה שלך בתוך הגרשיים
-        const dogFullImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAcIAAAGQCAYAAAAV9NqUAAAACXBIWXMAAAsTAAALEwEAmpwYAAAgAElEQVR4nO3dfZBdZ33f8e9P0u7uSruSVrJky5YfsmXJ8pMsy7JlY8vGNoY0mIatSdrSNo9Je9M0TSc8TSc87ZROp9N0Sjuh007T6XT6T9N0Sjt9mI6bTidph8SAsY0fki3L8pAsyZIlS7uSVrurvT9O7u69u9p77z3n3HPu7/OaGZp795x7f9Z7f76/3/f3+0mSJEkiSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZIkSZ'; 
+  <div class="win-overlay" id="winOverlay">
+    <div class="win-card">
+      <div class="win-stars">⭐⭐⭐</div>
+      <div class="win-big">כל הכבוד! 🎉</div>
+      <div class="win-word" id="winWord" style="font-size:2rem; margin:15px 0;"></div>
+      <button class="next-btn" onclick="nextWord()" style="background:#4ECDC4; color:white; border:none; border-radius:50px; padding:10px 25px; cursor:pointer;">מילה הבאה ➡️</button>
+    </div>
+  </div>
 
-        const startButton = document.getElementById('start-button');
-        const startOverlay = document.getElementById('start-overlay');
-        const piecesArea = document.getElementById('pieces-area');
+  <script>
+    /* לוגיקת המשחק מהקובץ המקורי */
+    const WORDS = [
+      { text: "כלב", draw: drawDog, emoji: "🐶" },
+      { text: "חתול", draw: drawCat, emoji: "🐱" },
+      { text: "פרפר", draw: drawButterfly, emoji: "🦋" },
+      { text: "דג", draw: drawFish, emoji: "🐟" }
+    ];
 
-        // פונקציית ההפעלה שחייבת להיות קיימת
-        startButton.onclick = function() {
-            startOverlay.style.opacity = '0';
-            setTimeout(() => {
-                startOverlay.style.display = 'none';
-                initGame();
-            }, 500);
-        };
+    let currentWordIdx = 0;
+    const board = document.getElementById('board');
+    const piecesPool = document.getElementById('piecesPool');
 
-        function initGame() {
-            const positions = [0, 1, 2];
-            // ערבוב סדר החלקים
-            positions.sort(() => Math.random() - 0.5);
+    // פונקציות עזר לציור (מקוצרות מהמקור)
+    function drawDog(ctx){
+      ctx.fillStyle='#87CEEB'; ctx.fillRect(0,0,240,240);
+      ctx.fillStyle='#C68642'; ctx.beginPath(); ctx.arc(120,120,60,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='black'; ctx.beginPath(); ctx.arc(100,100,10,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(140,100,10,0,Math.PI*2); ctx.fill();
+    }
+    function drawCat(ctx){
+      ctx.fillStyle='#C8EEFF'; ctx.fillRect(0,0,240,240);
+      ctx.fillStyle='#F5A623'; ctx.beginPath(); ctx.arc(120,120,60,0,Math.PI*2); ctx.fill();
+    }
+    function drawButterfly(ctx){
+      ctx.fillStyle='#FFF9C4'; ctx.fillRect(0,0,240,240);
+      ctx.fillStyle='#FF6B6B'; ctx.beginPath(); ctx.ellipse(120,120,80,40,0.5,0,Math.PI*2); ctx.fill();
+    }
+    function drawFish(ctx){
+      ctx.fillStyle='#B3E5FC'; ctx.fillRect(0,0,240,240);
+      ctx.fillStyle='#1E88E5'; ctx.beginPath(); ctx.ellipse(120,120,70,40,0,0,Math.PI*2); ctx.fill();
+    }
 
-            positions.forEach((id, index) => {
-                const piece = document.createElement('div');
-                piece.className = 'puzzle-part';
-                piece.style.backgroundImage = `url(${dogFullImage})`;
-                piece.style.backgroundPosition = `-${id * 150}px 0px`;
-                
-                // פיזור ראשוני באזור החלקים
-                piece.style.left = (index * 170 + 20) + 'px';
-                piece.style.top = '10px';
-                
-                // הפיכת החלק לנגרר
-                makeElementDraggable(piece);
-                piecesArea.appendChild(piece);
-            });
+    function initGame() {
+      const word = WORDS[currentWordIdx];
+      board.innerHTML = '';
+      piecesPool.innerHTML = '';
+      const letters = word.text.split('');
+      const size = 120;
+
+      board.style.width = (letters.length * size) + 'px';
+      board.style.height = size + 'px';
+
+      letters.forEach((char, i) => {
+        const slot = document.createElement('div');
+        slot.className = 'slot';
+        slot.style.width = size + 'px';
+        slot.style.height = size + 'px';
+        slot.dataset.char = char;
+        board.appendChild(slot);
+
+        const piece = document.createElement('div');
+        piece.className = 'piece';
+        piece.style.width = size + 'px';
+        piece.style.height = size + 'px';
+        piece.draggable = true;
+        piece.innerText = char;
+        piece.style.fontSize = "2rem";
+        piece.style.display = "flex";
+        piece.style.alignItems = "center";
+        piece.style.justifyContent = "center";
+        piece.style.background = "white";
+
+        piece.addEventListener('dragstart', (e) => e.dataTransfer.setData('text', char));
+        piecesPool.appendChild(piece);
+      });
+
+      // הוספת מאזיני גרירה ללוח
+      board.addEventListener('dragover', (e) => e.preventDefault());
+      board.addEventListener('drop', (e) => {
+        const char = e.dataTransfer.getData('text');
+        const target = e.target.closest('.slot');
+        if (target && target.dataset.char === char && !target.hasChildNodes()) {
+          const p = Array.from(piecesPool.children).find(el => el.innerText === char);
+          target.appendChild(p);
+          checkWin();
         }
+      });
+    }
 
-        function makeElementDraggable(el) {
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            
-            el.onmousedown = dragMouseDown;
-            el.ontouchstart = dragMouseDown;
+    function checkWin() {
+      if (board.querySelectorAll('.piece').length === WORDS[currentWordIdx].text.length) {
+        document.getElementById('winWord').innerText = WORDS[currentWordIdx].text;
+        document.getElementById('winOverlay').classList.add('show');
+        spawnConfetti();
+      }
+    }
 
-            function dragMouseDown(e) {
-                e = e || window.event;
-                const clientX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-                const clientY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
-                pos3 = clientX;
-                pos4 = clientY;
-                document.onmouseup = closeDragElement;
-                document.ontouchend = closeDragElement;
-                document.onmousemove = elementDrag;
-                document.ontouchmove = elementDrag;
-            }
+    function nextWord() {
+      currentWordIdx = (currentWordIdx + 1) % WORDS.length;
+      document.getElementById('winOverlay').classList.remove('show');
+      initGame();
+    }
 
-            function elementDrag(e) {
-                e = e || window.event;
-                const clientX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
-                const clientY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
-                pos1 = pos3 - clientX;
-                pos2 = pos4 - clientY;
-                pos3 = clientX;
-                pos4 = clientY;
-                el.style.top = (el.offsetTop - pos2) + "px";
-                el.style.left = (el.offsetLeft - pos1) + "px";
-            }
+    function spawnConfetti() {
+      for(let i=0; i<50; i++) {
+        const c = document.createElement('div');
+        c.className = 'confetti-bit';
+        c.style.left = Math.random() * 100 + 'vw';
+        c.style.background = ['#FF6B6B','#FFD93D','#4ECDC4'][Math.floor(Math.random()*3)];
+        c.style.width = '10px'; c.style.height = '10px';
+        c.style.animationDuration = (1 + Math.random()) + 's';
+        document.body.appendChild(c);
+        setTimeout(() => c.remove(), 2000);
+      }
+    }
 
-            function closeDragElement() {
-                document.onmouseup = null;
-                document.onmousemove = null;
-                document.ontouchend = null;
-                document.ontouchmove = null;
-            }
-        }
-    </script>
+    // תיקון כפתור ההפעלה
+    document.getElementById('startMainBtn').addEventListener('click', () => {
+      document.getElementById('audioEnabler').style.display = 'none';
+      initGame();
+    });
+  </script>
 </body>
 </html>
